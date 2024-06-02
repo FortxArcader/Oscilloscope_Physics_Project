@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AC Wave Generator</title>
+    <style>
+        body {
+    background-color: #57575b;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    min-height: 1570px; /* Increased the minimum height by 3% */
+}
+
+
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .introduction {
+            background-color: #f0f0f0;
+            padding: 20px;
+            text-align: left;
+            max-width: 800px;
+            margin: 20px auto;
+            border-radius: 10px;
+        }
+
+        .introduction p {
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .waveform-container {
+            width: 100%;
+            height: 400px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: auto;
+            margin-top: 20px;
+        }
+
+        #waveform {
+            width: 200%;
+            height: 80%;
+            border: 1px solid #000;
+        }
+
+        .coordinate-system {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            transform: translateY(50%);
+            font-size: 12px;
+            color: #888;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            justify-content: center;
+            padding-bottom: 60px;
+            /* Add padding to avoid overlap with footer */
+        }
+
+        .controls label,
+        .controls input[type="checkbox"],
+        .controls input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            margin: 5px;
+        }
+
+        .controls div {
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>AC Wave Generator</h1>
+    </header>
+
+    <div class="introduction">
+        <p>Welcome to the AC Wave Generator!</p>
+        <p>This tool Created by <b>Ank Gupta of class 12th Science A</b> allows you to visualize and manipulate
+            alternating
+            current (AC) waveforms. You can adjust
+            parameters such as amplitude, frequency, phase, DC offset, harmonics, and noise to observe their effects on
+            the wave.</p>
+        <p>Experiment with different wave types including sine, square, triangular, and sawtooth waves to understand
+            their characteristics.</p>
+        <p>Have fun exploring!</p>
+    </div>
+
+    <div class="waveform-container">
+        <canvas id="waveform"></canvas>
+        <div class="coordinate-system">
+            <span>Amplitude ↑</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>|</span><br>
+            <span>----------------------------> Time ↓</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div>
+            <label for="amplitude">Amplitude:</label>
+            <input type="number" id="amplitude" min="0" max="200" value="100" oninput="updateAmplitude(this.value)">
+        </div>
+        <div>
+            <label for="frequency">Frequency:</label>
+            <input type="number" id="frequency" min="0" max="10" value="1" step="0.1"
+                oninput="updateFrequency(this.value)">
+        </div>
+        <div>
+            <label for="phase">Phase (degrees):</label>
+            <input type="number" id="phase" min="0" max="360" value="0" oninput="updatePhase(this.value)">
+        </div>
+        <div>
+            <label for="dcOffset">DC Offset:</label>
+            <input type="number" id="dcOffset" min="-100" max="100" value="0" oninput="updateDCOffset(this.value)">
+        </div>
+        <div>
+            <label for="harmonics">Harmonics:</label>
+            <input type="number" id="harmonics" min="0" max="10" value="0" oninput="updateHarmonics(this.value)">
+        </div>
+        <div>
+            <label for="noise">Noise:</label>
+            <input type="number" id="noise" min="0" max="100" value="0" oninput="updateNoise(this.value)">
+        </div>
+        <div>
+            <input type="checkbox" id="squareWave" onchange="updateWaveType()">
+            <label for="squareWave">Square Wave</label>
+        </div>
+        <div>
+            <input type="checkbox" id="triangularWave" onchange="updateWaveType()">
+            <label for="triangularWave">Triangular Wave</label>
+        </div>
+        <div>
+            <input type="checkbox" id="sawtoothWave" onchange="updateWaveType()">
+            <label for="sawtoothWave">Sawtooth Wave</label>
+        </div>
+        <br>
+        <button id="toggleButton" onclick="toggleWave()">Start Wave</button>
+    </div>
+
+    <footer>
+        <p>Made with ❤️ by Ank Gupta</p>
+    </footer>
+
+    <script>
+        let angle = 0;
+        let amplitude = 100;
+        let frequency = 1;
+        let phase = 0;
+        let dcOffset = 0;
+        let harmonics = 0;
+        let noise = 0;
+        let canvas;
+        let isWaveRunning = false;
+        let waveType = 'sine';
+
+        function setup() {
+            canvas = document.getElementById('waveform');
+            canvas.width = window.innerWidth * 1.8;
+            canvas.height = 400;
+            draw();
+        }
+
+        function draw() {
+            let ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+
+            for (let i = 0; i < canvas.width; i += 4) {
+                let n = i * frequency / canvas.width;
+                let r = amplitude * Math.sin(2 * Math.PI * n + phase * Math.PI / 180);
+                if (waveType === 'square') {
+                    r = r >= 0 ? amplitude : -amplitude;
+                } else if (waveType === 'triangular') {
+                    r = amplitude * (2 * Math.abs(n - Math.floor(n + 0.5)) - 1);
+                } else if (waveType === 'sawtooth') {
+                    r = amplitude * (n - Math.floor(n));
+                }
+
+                // Add harmonics
+                for (let h = 2; h <= harmonics; h++) {
+                    r += amplitude / h * Math.sin(2 * Math.PI * h * n + phase * Math.PI / 180);
+                }
+
+                // Add noise
+                r += (Math.random() - 0.5) * noise;
+
+                let y = canvas.height / 2 + r * Math.sin(angle) + dcOffset;
+                ctx.lineTo(i, y);
+            }
+
+            ctx.stroke();
+            angle += 0.1;
+
+            if (isWaveRunning) {
+                requestAnimationFrame(draw);
+            }
+        }
+
+        function updateAmplitude(value) {
+            amplitude = value;
+        }
+
+        function updateFrequency(value) {
+            frequency = value;
+        }
+
+        function updatePhase(value) {
+            phase = value;
+        }
+
+        function updateDCOffset(value) {
+            dcOffset = value;
+        }
+
+        function updateHarmonics(value) {
+            harmonics = value;
+        }
+
+        function updateNoise(value) {
+            noise = value;
+        }
+
+        function updateWaveType() {
+            if (document.getElementById('squareWave').checked) {
+                waveType = 'square';
+            } else if (document.getElementById('triangularWave').checked) {
+                waveType = 'triangular';
+            } else if (document.getElementById('sawtoothWave').checked) {
+                waveType = 'sawtooth';
+            } else {
+                waveType = 'sine';
+            }
+        }
+
+        function toggleWave() {
+            isWaveRunning = !isWaveRunning;
+            if (isWaveRunning) {
+                draw();
+                document.getElementById('toggleButton').textContent = 'Stop Wave';
+            } else {
+                document.getElementById('toggleButton').textContent = 'Start Wave';
+            }
+        }
+
+        setup();
+    </script>
+</body>
+
+</html>
